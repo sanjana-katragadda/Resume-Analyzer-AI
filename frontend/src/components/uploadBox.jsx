@@ -1,290 +1,154 @@
-import axios from "axios";
-import { useState } from "react";
-import JobMatchCard from "./JobMatchCard";
-import ScoreCard from "./ScoreCard";
-import SkillsCard from "./SkillsCard";
-import AIAnalysisCard from "./AIAnalysisCard";
-
-function UploadBox() {
-    const [files, setFiles] = useState([]);
-    const [jobDescription, setJobDescription] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
-
-    // Select multiple resumes
-    const handleFileChange = (e) => {
-        setFiles(Array.from(e.target.files));
-    };
-
-    // Upload resumes
-    const handleUpload = async () => {
-
-        if (files.length === 0) {
-            alert("Please select a resume.");
-            return;
-        }
-
-        if (!jobDescription.trim()) {
-            alert("Please enter a Job Description.");
-            return;
-        }
-
-        // Create FormData
-        const formData = new FormData();
-
-        // Add all selected resumes
-        files.forEach((file) => {
-            formData.append("files", file);
-        });
-
-        // Add Job Description
-        formData.append(
-            "job_description",
-            jobDescription
-        );
-
-        setLoading(true);
-
-        try {
-
-            // Send data to FastAPI
-            const response = await axios.post(
-                "http://127.0.0.1:8000/upload",
-                formData
-            );
-
-            // Check backend response
-            console.log(
-                "BACKEND RESPONSE:",
-                response.data
-            );
-
-            // Store response
-            setResult(response.data);
-
-        } catch (error) {
-
-            console.log(
-                "FULL ERROR:",
-                error
-            );
-
-            console.log(
-                "BACKEND RESPONSE:",
-                error.response?.data
-            );
-
-            alert(
-                error.response?.data?.detail ||
-                error.message ||
-                "Something went wrong"
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    };
-
-    return (
-        <div>
-
-            {/* ================================= */}
-            {/* RESUME FILE UPLOAD */}
-            {/* ================================= */}
-
-            <input
-                type="file"
-                accept=".pdf,.docx"
-                multiple
-                onChange={handleFileChange}
-            />
-
-            {/* ================================= */}
-            {/* SHOW SELECTED RESUMES */}
-            {/* ================================= */}
-
-            {files.length > 0 && (
-                <div>
-
-                    <h4>
-                        Selected Resumes:
-                    </h4>
-
-                    <ul>
-
-                        {files.map(
-                            (file, index) => (
-
-                                <li key={index}>
-                                    {file.name}
-                                </li>
-
-                            )
-                        )}
-
-                    </ul>
-
-                </div>
-            )}
-
-            <br />
-            <br />
-
-            {/* ================================= */}
-            {/* JOB DESCRIPTION */}
-            {/* ================================= */}
-
-            <textarea
-                placeholder="Paste the Job Description here..."
-                value={jobDescription}
-                onChange={(e) =>
-                    setJobDescription(e.target.value)
-                }
-                rows="10"
-                cols="50"
-            />
-
-            <br />
-            <br />
-
-            {/* ================================= */}
-            {/* ANALYZE BUTTON */}
-            {/* ================================= */}
-
-            <button onClick={handleUpload}>
-                Analyze Resumes
-            </button>
-
-            {/* ================================= */}
-            {/* LOADING MESSAGE */}
-            {/* ================================= */}
-
-            {loading && (
-                <p>
-                    Analyzing Resumes...
-                </p>
-            )}
-
-            {/* ================================= */}
-            {/* RESULTS */}
-            {/* ================================= */}
-
-            {result &&
-                result.candidates && (
-
-                <div>
-
-                    <h2>
-                        Resume Comparison Results
-                    </h2>
-
-                    <h3>
-                        Total Candidates:
-                        {" "}
-                        {result.total_candidates}
-                    </h3>
-
-
-                    {/* ================================= */}
-                    {/* DISPLAY EACH CANDIDATE */}
-                    {/* ================================= */}
-
-                    {result.candidates.map(
-                        (candidate) => (
-
-                        <div key={candidate.filename}>
-
-                            {/* Candidate Rank */}
-
-                            <h2>
-                                Rank #{candidate.rank}
-                            </h2>
-
-
-                            {/* Resume Name */}
-
-                            <h3>
-                                Resume:
-                                {candidate.filename}
-                            </h3>
-
-
-                            {/* ================================= */}
-                            {/* RESUME SCORE */}
-                            {/* ================================= */}
-
-                            <ScoreCard
-                                score={
-                                    candidate.score.score }
-                            />
-
-
-                            {/* ================================= */}
-                            {/* RESUME SKILLS */}
-                            {/* ================================= */}
-
-                            <SkillsCard
-                                skills={
-                                    candidate.skills
-                                }
-                            />
-
-
-                            {/* ================================= */}
-                            {/* JOB MATCH */}
-                            {/* ================================= */}
-
-                            <JobMatchCard
-                                jobMatch={
-                                    candidate.job_match
-                                }
-                            />
-                            {/* ================================= */}
-{/* AI RESUME ANALYSIS */}
-{/* ================================= */}
-
-<AIAnalysisCard
-    aiAnalysis={
-        candidate.ai_analysis
-    }
-/>
-
-
-                            {/* ================================= */}
-                            {/* SEMANTIC MATCH SCORE */}
-                            {/* ================================= */}
-
-                            <div>
-
-                                <h3>
-                                    🧠 Semantic Match Score
-                                </h3>
-
-                                <p>
-                                    {
-                                        candidate.semantic_score !== undefined
-                                            ? `${candidate.semantic_score}%`
-                                            : "Semantic score not available"
-                                    }
-                                </p>
-
-                            </div>
-
-
-                            <hr />
-
-                        </div>
-
-                    ))}
-
-                </div>
-
-            )}
-
+import DragDropUpload from "./DragDropUpload";
+import JobDescriptionCard from "./JobDescriptionCard";
+import { Play, Sparkles, FileText, ArrowRight, CheckCircle2, ListFilter } from "lucide-react";
+
+function UploadBox({
+  files,
+  onFilesChange,
+  jobDescription,
+  onJobDescriptionChange,
+  loading,
+  onSubmit,
+  result,
+  onSelectCandidate
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+      {/* Configuration Form Row */}
+      <div className="analyzer-form-grid">
+        {/* Left Card - Resumes Upload */}
+        <div className="glass-panel" style={{ padding: "28px" }}>
+          <h3 className="form-title">
+            <FileText size={18} style={{ color: "var(--primary)" }} />
+            1. Upload Resume Batch
+          </h3>
+          <DragDropUpload files={files} onFilesChange={onFilesChange} loading={loading} />
         </div>
-    );
+
+        {/* Right Card - Job Descrition */}
+        <div className="glass-panel" style={{ padding: "28px" }}>
+          <h3 className="form-title">
+            <ListFilter size={18} style={{ color: "var(--primary-purple)" }} />
+            2. Match Against Specifications
+          </h3>
+          <JobDescriptionCard value={jobDescription} onChange={onJobDescriptionChange} loading={loading} />
+        </div>
+      </div>
+
+      {/* Action Button Segment */}
+      <div className="action-trigger-panel">
+        <button
+          className="analyze-button-glow btn btn-interactive"
+          onClick={onSubmit}
+          disabled={loading || files.length === 0 || !jobDescription.trim()}
+        >
+          {loading ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span className="loading-spinner" />
+              <span>Scanning applicant files...</span>
+            </div>
+          ) : (
+            <>
+              <Play size={16} fill="currentColor" />
+              Analyze Resumes
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Skeleton Loading Panel */}
+      {loading && (
+        <div className="skeleton-loader">
+          <div className="skeleton-item" style={{ height: "120px" }}></div>
+          <div className="skeleton-item" style={{ height: "120px" }}></div>
+          <div className="skeleton-item" style={{ height: "120px" }}></div>
+        </div>
+      )}
+
+      {/* Quick Summary Results Panel if ready */}
+      {result && result.candidates && !loading && (
+        <div className="glass-panel" style={{ padding: "28px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div>
+              <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                Scanned Results <CheckCircle2 size={18} style={{ color: "var(--emerald)" }} />
+              </h3>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginTop: "4px" }}>
+                Total profiles parsed successfully: <strong>{result.total_candidates}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {result.candidates.map((candidate) => {
+              const score = candidate.score?.score ?? 0;
+              const matchScore = candidate.job_match?.match_score ?? 0;
+
+              return (
+                <div
+                  key={candidate.filename}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "16px",
+                    borderRadius: "12px",
+                    border: "1px solid var(--border-color)",
+                    background: "rgba(255,255,255,0.01)"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "50%",
+                      background: candidate.rank === 1 ? "rgba(245, 158, 11, 0.15)" : "var(--border-color)",
+                      color: candidate.rank === 1 ? "#fbbf24" : "var(--text-secondary)",
+                      fontWeight: "bold",
+                      fontSize: "0.85rem"
+                    }}>
+                      #{candidate.rank}
+                    </span>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+                        {candidate.contact?.name || candidate.filename}
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginLeft: "8px" }}>
+                        ({candidate.filename})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Fit Score</div>
+                      <div style={{ fontWeight: "bold", color: "var(--primary-purple)" }}>{score}/100</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Job Match</div>
+                      <div style={{ fontWeight: "bold", color: "var(--emerald)" }}>{matchScore}%</div>
+                    </div>
+                    
+                    <button
+                      className="secondary btn-interactive"
+                      style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                      onClick={() => onSelectCandidate(candidate)}
+                    >
+                      View Report
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default UploadBox;
